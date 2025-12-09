@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, Tray, nativeImage, shell } = require('electron
 const path = require('path');
 
 const GEMINI_URL = 'https://gemini.google.com/app';
+const allowedHosts = new Set(['gemini.google.com', 'accounts.google.com', 'myaccount.google.com']);
 
 let mainWindow;
 let tray;
@@ -51,6 +52,15 @@ function createTray() {
   tray.on('double-click', () => showWindow());
 }
 
+function isAllowedUrl(url) {
+  try {
+    const { host } = new URL(url);
+    return allowedHosts.has(host);
+  } catch {
+    return false;
+  }
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     title: 'Gemini Desktop',
@@ -83,7 +93,7 @@ function createMainWindow() {
   });
 
   const handleExternalLinks = (event, url) => {
-    if (!url.startsWith(GEMINI_URL)) {
+    if (!isAllowedUrl(url)) {
       event.preventDefault();
       shell.openExternal(url);
     }
@@ -91,7 +101,7 @@ function createMainWindow() {
 
   mainWindow.webContents.on('will-navigate', handleExternalLinks);
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (!url.startsWith(GEMINI_URL)) {
+    if (!isAllowedUrl(url)) {
       shell.openExternal(url);
       return { action: 'deny' };
     }
